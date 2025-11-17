@@ -82,6 +82,7 @@ func main() {
 			scheme = "http"
 		}
 		loginURL := scheme + "://" + r.Host + "/wechat/loginU?sid=" + sid
+		log.Printf("login_qr scheme=%s host=%s url=%s", scheme, r.Host, loginURL)
 		png, err := qrcode.Encode(loginURL, qrcode.Medium, 240)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -183,6 +184,7 @@ func main() {
 		cb := scheme + "://" + r.Host + "/wechat/callback"
 		oauth := officialAccount.GetOauth()
 		url, err := oauth.GetRedirectURL(cb, "snsapi_userinfo", sid)
+		log.Printf("oauth_go scheme=%s host=%s cb=%s sid=%s url=%s", scheme, r.Host, cb, sid, url)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
