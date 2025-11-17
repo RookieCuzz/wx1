@@ -318,7 +318,7 @@ func main() {
 			<div class="bg"></div>
 			<div class="card">
 			  <img class="gif" src="/wechat/static/gifs/success.gif" alt="success" />
-			  <div class="title">Minecraft 风像素提示</div>
+			  <div class="title">    </div>
 			  <div class="txt">授权绑定成功！</div>
 			</div>
 			</body></html>`)
