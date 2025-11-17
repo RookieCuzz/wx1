@@ -263,51 +263,7 @@ func main() {
 		srv.Send()
 	})
 
-	http.HandleFunc("/wechat/callback", func(w http.ResponseWriter, r *http.Request) {
-		srv := officialAccount.GetServer(r, w)
-		// 设置消息／事件处理函数
-		srv.SetMessageHandler(func(msg *message.MixMessage) *message.Reply {
-			// 根据不同 msg.MsgType 或 msg.Event 做逻辑
-			switch msg.MsgType {
-			case message.MsgTypeText:
-				// echo 用户文本消息
-				text := message.NewText("你发送的是: " + msg.Content)
-				return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
-			case message.MsgTypeEvent:
-				// 处理扫码登录事件
-				if msg.Event == "subscribe" || msg.Event == "SCAN" {
-					sid := extractSID(msg.EventKey)
-					if sid != "" {
-						openid := string(msg.FromUserName)
-						var union string
-						if openid != "" {
-							userSvc := officialAccount.GetUser()
-							if info, err := userSvc.GetUserInfo(openid); err == nil {
-								union = info.UnionID
-							}
-						}
-						loginMu.Lock()
-						loginSessions[sid] = loginState{OpenID: openid, UnionID: union, ScannedAt: time.Now()}
-						loginMu.Unlock()
-					}
-					if msg.Event == "subscribe" {
-						text := message.NewText("欢迎关注！")
-						return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
-					}
-				}
-			}
-			// 默认不回复
-			return nil
-		})
-
-		err := srv.Serve()
-		if err != nil {
-			log.Printf("Serve error: %v", err)
-			fmt.Fprintf(w, "error")
-			return
-		}
-		srv.Send()
-	})
+    
 
 	addr := ":28083"
 	fmt.Println("Server listening on", addr)
