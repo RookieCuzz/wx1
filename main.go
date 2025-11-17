@@ -300,7 +300,7 @@ func main() {
 				background-size: 16px 16px, 16px 16px; pointer-events:none; opacity:.4}
 			  .card{position:relative; width:94%; max-width:600px; padding:28px; background:#2b2b2b; border:4px solid #000; box-shadow: 0 0 0 4px #3f3f3f, 0 0 0 8px #000; text-align:center}
 			  .title{font-size:24px; letter-spacing:2px; text-shadow:2px 2px #000}
-			  .gif{display:block; width:180px; height:auto; margin:0 auto 18px; image-rendering: pixelated; box-shadow:2px 2px #000}
+			  .gif{display:block; width:auto; height:auto; margin:0 auto 18px; image-rendering:auto}
 			  .txt{font-size:22px; background:#3a3a3a; display:inline-block; padding:10px 16px; border:3px solid #000; box-shadow:2px 2px #000; color:#6cc24a}
 			  @media (max-width: 480px){
 			    .card{width:94%; max-width:480px; padding:24px}
