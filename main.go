@@ -166,7 +166,7 @@ func main() {
 			http.Redirect(w, r, "/wechat/login", http.StatusFound)
 			return
 		}
-        http.SetCookie(w, &http.Cookie{Name: "wx_sid", Value: sid, Path: "/", MaxAge: 600})
+        
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>授权绑定</title>
 		<style>
@@ -237,12 +237,7 @@ func main() {
 
 	// 发起网页授权跳转（将 sid 通过 state 传递到回调）
 	http.HandleFunc("/wechat/oauth_go", func(w http.ResponseWriter, r *http.Request) {
-		sid := r.URL.Query().Get("sid")
-		if sid == "" {
-			if c, err := r.Cookie("wx_sid"); err == nil && c.Value != "" {
-				sid = c.Value
-			}
-		}
+        sid := r.URL.Query().Get("sid")
 		if sid == "" {
 			http.Redirect(w, r, "/wechat/login", http.StatusFound)
 			return
