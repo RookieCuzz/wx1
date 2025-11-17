@@ -173,9 +173,10 @@ func main() {
 		  .title{font-size:24px; letter-spacing:2px; text-shadow:2px 2px #000}
 		  .desc{margin:10px 0 18px; color:#bfbfbf}
 		  .badge{display:block; width:max-content; margin:0 auto 22px; padding:10px 14px; background:#3a3a3a; border:3px solid #000; box-shadow:2px 2px #000; font-size:14px}
-          .btn{display:block; width:max-content; margin:16px auto 0; padding:32px 48px; font-size:40px; color:#000; background:#6cc24a; border:4px solid #000; box-shadow:0 12px #000, 0 0 0 8px #2e5f23; text-transform:uppercase; letter-spacing:3px; cursor:pointer}
-		  .btn:hover{filter:brightness(1.05)}
-          .btn:active{transform:translateY(6px); box-shadow:0 6px #000, 0 0 0 8px #2e5f23}
+          .btn{display:block; width:max-content; margin:16px auto 0; padding:16px 24px; font-size:20px; color:#000; background:#6cc24a; border:4px solid #000; box-shadow:0 6px #000, 0 0 0 6px #2e5f23; text-transform:uppercase; letter-spacing:3px; cursor:pointer}
+          .btn:hover{filter:brightness(1.05)}
+          .btn:active{transform:translateY(4px); box-shadow:0 4px #000, 0 0 0 6px #2e5f23}
+          .btn[disabled]{opacity:.7; filter:saturate(.8) brightness(.95); cursor:not-allowed; box-shadow:0 6px #000, 0 0 0 8px #2e5f23}
 		  .npc{width:96px; height:96px; margin:0 auto 12px; background:
 		    radial-gradient(circle at 50%% 35%%, #ffec9a 0 18%%, transparent 19%%),
 		    radial-gradient(circle at 35%% 50%%, #000 0 6%%, transparent 7%%),
@@ -188,13 +189,13 @@ func main() {
 		    .title{font-size:22px}
 		    .npc{width:88px; height:88px}
 		    .badge{font-size:13px}
-            .btn{width:100%%; font-size:34px; padding:28px 20px; box-shadow:0 10px #000, 0 0 0 8px #2e5f23}
+            .btn{width:100%%; font-size:17px; padding:14px 10px; box-shadow:0 5px #000, 0 0 0 6px #2e5f23}
 		  }
 		  @media (max-width: 360px){
 		    .card{width:96%%; max-width:360px; padding:20px}
 		    .title{font-size:20px}
 		    .npc{width:80px; height:80px}
-            .btn{width:100%%; font-size:30px; padding:24px 16px; background:#6cc24a}
+            .btn{width:100%%; font-size:15px; padding:12px 8px; background:#6cc24a}
 		  }
 		</style></head><body>
 		<div class="bg"></div>
@@ -205,11 +206,19 @@ func main() {
 		  <div class="badge">会话ID: %s</div>
 		  <button id="go" class="btn">同意授权</button>
 		</div>
-		<script>
-		  document.getElementById('go').onclick = function(){
-		    location.href = '/wechat/oauth_go?sid=%s';
-		  };
-		</script>
+        <script>
+          (function(){
+            var btn = document.getElementById('go');
+            var locked = false;
+            btn.onclick = function(){
+              if(locked) return;
+              locked = true;
+              btn.disabled = true;
+              btn.innerText = '处理中...';
+              setTimeout(function(){ location.href = '/wechat/oauth_go?sid=%s'; }, 30);
+            };
+          })();
+        </script>
 		</body></html>`, sid, sid)
 	})
 
