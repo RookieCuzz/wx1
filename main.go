@@ -205,24 +205,27 @@ func main() {
 		  <div class="npc"></div>
 		  <div class="title">像素授权绑定</div>
 		  <div class="desc">此页面需在微信客户端内打开</div>
-		  <div class="badge">会话ID: %s</div>
+		  <div id="sid" class="badge"></div>
 		  <button id="go" class="btn">同意授权</button>
 		</div>
         <script>
-          (function(){
-            var btn = document.getElementById('go');
-            var locked = false;
-            btn.onclick = function(){
-              if(locked) return;
-              locked = true;
-              btn.classList.add('locked');
-              btn.disabled = true;
-              btn.innerText = '处理中...';
-              setTimeout(function(){ location.href = '/wechat/oauth_go?sid=%s'; }, 30);
-            };
-          })();
+		  (function(){
+		    var btn = document.getElementById('go');
+		    var sidText = document.getElementById('sid');
+		    var SID = '%s';
+		    sidText.textContent = '会话ID: ' + SID;
+		    var locked = false;
+		    btn.onclick = function(){
+		      if(locked) return;
+		      locked = true;
+		      btn.classList.add('locked');
+		      btn.disabled = true;
+		      btn.innerText = '处理中...';
+		      setTimeout(function(){ location.href = '/wechat/oauth_go?sid=' + encodeURIComponent(SID); }, 30);
+		    };
+		  })();
         </script>
-		</body></html>`, sid, sid)
+		</body></html>`, sid)
 	})
 
 	// 发起网页授权跳转（将 sid 通过 state 传递到回调）
@@ -264,7 +267,7 @@ func main() {
 			}
 			if sid != "" {
 				loginMu.Lock()
-				loginSessions[sid] = loginState{OpenID: info.OpenID, UnionID: info.Unionid, ScannedAt: time.Now()}
+                loginSessions[sid] = loginState{OpenID: info.OpenID, UnionID: info.UnionID, ScannedAt: time.Now()}
 				loginMu.Unlock()
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -272,7 +275,7 @@ func main() {
         <p>授权完成</p>
         <p>OpenID: %s</p>
         <p>UnionID: %s</p>
-        </body></html>`, info.OpenID, info.Unionid)
+        </body></html>`, info.OpenID, info.UnionID)
 			return
 		}
 
