@@ -116,8 +116,6 @@ func main() {
 		}
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":  "scanned",
-			"openid":  st.OpenID,
-			"unionid": st.UnionID,
 			"scanned": st.ScannedAt.Format(time.RFC3339),
 		})
 	})
@@ -145,7 +143,7 @@ func main() {
 				    const r = await fetch('/wechat/login_status?sid='+sid);
 				    const s = await r.json();
 				    if(s.status === 'scanned'){
-				      document.getElementById('status').innerText = '登录成功，OpenID: '+s.openid+(s.unionid ? ('，UnionID: '+s.unionid) : '');
+				      document.getElementById('status').innerText = '授权绑定成功！';
 				    }else{
 				      setTimeout(poll, 2000);
 				    }
@@ -289,13 +287,59 @@ func main() {
 				loginMu.Lock()
                 loginSessions[sid] = loginState{OpenID: info.OpenID, UnionID: info.Unionid, ScannedAt: time.Now()}
 				loginMu.Unlock()
+				log.Printf("auth success sid=%s openid=%s unionid=%s", sid, info.OpenID, info.Unionid)
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>授权完成</title></head><body>
-        <p>授权完成</p>
-        <p>OpenID: %s</p>
-        <p>UnionID: %s</p>
-        </body></html>`, info.OpenID, info.Unionid)
+			fmt.Fprint(w, `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>授权完成</title>
+			<style>
+			  html,body{height:100%}
+			  body{margin:0; background:#1a1a1a; color:#fff; font-family: monospace; display:flex; align-items:center; justify-content:center; image-rendering: pixelated; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom)}
+			  .bg{position:fixed; inset:0; background:
+				linear-gradient(#222 1px, transparent 1px),
+				linear-gradient(90deg, #222 1px, transparent 1px);
+				background-size: 16px 16px, 16px 16px; pointer-events:none; opacity:.4}
+			  .card{position:relative; width:94%; max-width:600px; padding:28px; background:#2b2b2b; border:4px solid #000; box-shadow: 0 0 0 4px #3f3f3f, 0 0 0 8px #000; text-align:center}
+			  .title{font-size:24px; letter-spacing:2px; text-shadow:2px 2px #000}
+			  .px-check{width:180px; height:130px; margin:0 auto 18px; filter: drop-shadow(2px 2px #000)}
+			  .px-check .sq{width:12px; height:12px; background: transparent; box-shadow:
+			    24px 72px #6cc24a,
+			    36px 84px #6cc24a,
+			    48px 96px #6cc24a,
+			    60px 108px #6cc24a,
+			    72px 96px #6cc24a,
+			    84px 84px #6cc24a,
+			    96px 72px #6cc24a,
+			    108px 60px #6cc24a,
+			    120px 48px #6cc24a,
+			    36px 72px #6cc24a,
+			    48px 84px #6cc24a,
+			    60px 96px #6cc24a,
+			    72px 84px #6cc24a,
+			    84px 72px #6cc24a,
+			    96px 60px #6cc24a,
+			    108px 48px #6cc24a;
+			  }
+			  .txt{font-size:22px; background:#3a3a3a; display:inline-block; padding:10px 16px; border:3px solid #000; box-shadow:2px 2px #000}
+			  @media (max-width: 480px){
+			    .card{width:94%; max-width:480px; padding:24px}
+			    .title{font-size:22px}
+			    .px-check{transform:scale(.9)}
+			    .txt{font-size:18px}
+			  }
+			  @media (max-width: 360px){
+			    .card{width:96%; max-width:360px; padding:20px}
+			    .title{font-size:20px}
+			    .px-check{transform:scale(.8)}
+			    .txt{font-size:16px}
+			  }
+			</style></head><body>
+			<div class="bg"></div>
+			<div class="card">
+			  <div class="px-check"><i class="sq"></i></div>
+			  <div class="title">Minecraft 风像素提示</div>
+			  <div class="txt">授权绑定成功！</div>
+			</div>
+			</body></html>`)
 			return
 		}
 
@@ -320,6 +364,7 @@ func main() {
 						loginMu.Lock()
 						loginSessions[sid] = loginState{OpenID: openid, UnionID: union, ScannedAt: time.Now()}
 						loginMu.Unlock()
+						log.Printf("scan event sid=%s openid=%s unionid=%s", sid, openid, union)
 					}
 					if msg.Event == "subscribe" {
 						text := message.NewText("欢迎关注！")
