@@ -160,6 +160,10 @@ func main() {
 	// 在微信内打开的预制登录页，点击按钮后再发起网页授权
 	http.HandleFunc("/wechat/loginU", func(w http.ResponseWriter, r *http.Request) {
 		sid := r.URL.Query().Get("sid")
+		if sid == "" {
+			http.Redirect(w, r, "/wechat/login", http.StatusFound)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>授权绑定</title>
 		<style>
@@ -231,6 +235,10 @@ func main() {
 	// 发起网页授权跳转（将 sid 通过 state 传递到回调）
 	http.HandleFunc("/wechat/oauth_go", func(w http.ResponseWriter, r *http.Request) {
 		sid := r.URL.Query().Get("sid")
+		if sid == "" {
+			http.Redirect(w, r, "/wechat/login", http.StatusFound)
+			return
+		}
 		scheme := r.Header.Get("X-Forwarded-Proto")
 		if scheme == "" { scheme = "http" }
 		h := r.Header.Get("X-Forwarded-Host")
@@ -292,7 +300,7 @@ func main() {
 						openid := string(msg.FromUserName)
 						var union string
 						if openid != "" {
-							userSvc := officialAccount.GetUser()
+						userSvc := officialAccount.GetUser()
 							if info, err := userSvc.GetUserInfo(openid); err == nil {
 								union = info.UnionID
 							}
