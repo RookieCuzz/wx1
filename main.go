@@ -117,17 +117,18 @@ func main() {
 	})
 
 	// 简单前端页面
-	http.HandleFunc("/wechat/login", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>微信扫码登录</title></head><body>
-        <h3>微信扫码登录</h3>
-        <div id="qr"></div>
-        <div id="status">等待扫码...</div>
-        <script>
-        (async function(){
-          const res = await fetch('/wechat/login_qr');
-          const data = await res.json();
-          const img = document.createElement('img');
+		http.HandleFunc("/wechat/login", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>微信扫码登录</title></head><body>
+			<h3>微信扫码登录</h3>
+			<div id="qr"></div>
+			<div id="status">等待扫码...</div>
+			<p><a href="/oauth/login">或点击进行微信网页授权获取UnionID</a></p>
+			<script>
+			(async function(){
+			  const res = await fetch('/wechat/login_qr');
+			  const data = await res.json();
+			  const img = document.createElement('img');
           img.src = data.qr_url;
           img.style.width = '240px';
           document.getElementById('qr').appendChild(img);
@@ -144,8 +145,51 @@ func main() {
           poll();
         })();
         </script>
-        </body></html>`)
-	})
+			</body></html>`)
+		})
+
+		http.HandleFunc("/oauth/login", func(w http.ResponseWriter, r *http.Request) {
+			scheme := r.Header.Get("X-Forwarded-Proto")
+			if scheme == "" {
+				scheme = "http"
+			}
+			cb := scheme + "://" + r.Host + "/oauth/callback"
+			oauth := officialAccount.GetOauth()
+			url, err := oauth.GetRedirectURL(cb, "snsapi_userinfo", "state")
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+				return
+			}
+			http.Redirect(w, r, url, http.StatusFound)
+		})
+
+		http.HandleFunc("/oauth/callback", func(w http.ResponseWriter, r *http.Request) {
+			code := r.URL.Query().Get("code")
+			if code == "" {
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing code"})
+				return
+			}
+			oauth := officialAccount.GetOauth()
+			tok, err := oauth.GetUserAccessToken(code)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+				return
+			}
+			info, err := oauth.GetUserInfo(tok.AccessToken, tok.OpenID, "zh_CN")
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"openid":  info.OpenID,
+				"unionid": info.Unionid,
+				"scope":   tok.Scope,
+			})
+		})
 
 	http.HandleFunc("/wechat/callback", func(w http.ResponseWriter, r *http.Request) {
 		srv := officialAccount.GetServer(r, w)
