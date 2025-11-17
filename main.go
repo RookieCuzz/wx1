@@ -125,7 +125,7 @@ func main() {
         <div id="status">等待扫码...</div>
         <script>
         (async function(){
-          const res = await fetch('/api/login_qr');
+          const res = await fetch('/wechat/login_qr');
           const data = await res.json();
           const img = document.createElement('img');
           img.src = data.qr_url;
@@ -133,7 +133,7 @@ func main() {
           document.getElementById('qr').appendChild(img);
           const sid = data.sid;
           async function poll(){
-            const r = await fetch('/api/login_status?sid='+sid);
+            const r = await fetch('/wechat/login_status?sid='+sid);
             const s = await r.json();
             if(s.status === 'scanned'){
               document.getElementById('status').innerText = '登录成功，OpenID: '+s.openid;
