@@ -123,39 +123,41 @@ func main() {
 	})
 
 	// 简单前端页面
-	http.HandleFunc("/wechat/login", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>微信扫码登录</title></head><body>
-			<h3>微信扫码登录</h3>
-			<div id="qr"></div>
-			<div id="status">等待扫码...</div>
-			<p id="wx-auth" style="display:none"><a href="/wechat/loginU">或点击在微信客户端内进行网页授权获取UnionID</a></p>
-			<script>
-			(async function(){
-			  const res = await fetch('/wechat/login_qr');
-			  const data = await res.json();
-			  const img = document.createElement('img');
-			  img.src = data.qr_data;
-			  img.style.width = '240px';
-			  document.getElementById('qr').appendChild(img);
-			  const sid = data.sid;
-			  async function poll(){
-			    const r = await fetch('/wechat/login_status?sid='+sid);
-			    const s = await r.json();
-			    if(s.status === 'scanned'){
-			      document.getElementById('status').innerText = '登录成功，OpenID: '+s.openid+(s.unionid ? ('，UnionID: '+s.unionid) : '');
-			    }else{
-			      setTimeout(poll, 2000);
-			    }
-			  }
-			  poll();
-			  if(navigator.userAgent.indexOf('MicroMessenger') !== -1){
-			    document.getElementById('wx-auth').style.display = 'block';
-			  }
-			})();
-			</script>
-			</body></html>`)
-	})
+		http.HandleFunc("/wechat/login", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>微信扫码登录</title></head><body>
+				<h3>微信扫码登录</h3>
+				<div id="qr"></div>
+				<div id="status">等待扫码...</div>
+				<p id="wx-auth" style="display:none"><a href="/wechat/loginU">或点击在微信客户端内进行网页授权获取UnionID</a></p>
+				<script>
+				(async function(){
+				  const res = await fetch('/wechat/login_qr');
+				  const data = await res.json();
+				  const img = document.createElement('img');
+				  img.src = data.qr_data;
+				  img.style.width = '240px';
+				  document.getElementById('qr').appendChild(img);
+				  const sid = data.sid;
+				  var auth = document.querySelector('#wx-auth a');
+				  if (auth) { auth.href = '/wechat/loginU?sid=' + encodeURIComponent(sid); }
+				  async function poll(){
+				    const r = await fetch('/wechat/login_status?sid='+sid);
+				    const s = await r.json();
+				    if(s.status === 'scanned'){
+				      document.getElementById('status').innerText = '登录成功，OpenID: '+s.openid+(s.unionid ? ('，UnionID: '+s.unionid) : '');
+				    }else{
+				      setTimeout(poll, 2000);
+				    }
+				  }
+				  poll();
+				  if(navigator.userAgent.indexOf('MicroMessenger') !== -1){
+				    document.getElementById('wx-auth').style.display = 'block';
+				  }
+				})();
+				</script>
+				</body></html>`)
+		})
 
 	// 在微信内打开的预制登录页，点击按钮后再发起网页授权
 	http.HandleFunc("/wechat/loginU", func(w http.ResponseWriter, r *http.Request) {
@@ -164,6 +166,7 @@ func main() {
 			http.Redirect(w, r, "/wechat/login", http.StatusFound)
 			return
 		}
+        http.SetCookie(w, &http.Cookie{Name: "wx_sid", Value: sid, Path: "/", MaxAge: 600})
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>授权绑定</title>
 		<style>
@@ -236,6 +239,11 @@ func main() {
 	http.HandleFunc("/wechat/oauth_go", func(w http.ResponseWriter, r *http.Request) {
 		sid := r.URL.Query().Get("sid")
 		if sid == "" {
+			if c, err := r.Cookie("wx_sid"); err == nil && c.Value != "" {
+				sid = c.Value
+			}
+		}
+		if sid == "" {
 			http.Redirect(w, r, "/wechat/login", http.StatusFound)
 			return
 		}
@@ -246,6 +254,7 @@ func main() {
 		cb := scheme + "://" + h + "/wechat/callback"
 		oauth := officialAccount.GetOauth()
 		url, err := oauth.GetRedirectURL(cb, "snsapi_userinfo", sid)
+		log.Printf("oauth_go rawQuery=%s sid=%s ua=%s", r.URL.RawQuery, sid, r.Header.Get("User-Agent"))
 		log.Printf("oauth_go scheme=%s host=%s cb=%s sid=%s url=%s", scheme, h, cb, sid, url)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -300,7 +309,7 @@ func main() {
 						openid := string(msg.FromUserName)
 						var union string
 						if openid != "" {
-						userSvc := officialAccount.GetUser()
+							userSvc := officialAccount.GetUser()
 							if info, err := userSvc.GetUserInfo(openid); err == nil {
 								union = info.UnionID
 							}
