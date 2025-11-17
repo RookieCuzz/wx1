@@ -159,6 +159,10 @@ func main() {
 				</body></html>`)
 		})
 
+    // 静态资源服务
+
+    http.Handle("/wechat/static/", http.StripPrefix("/wechat/static/", http.FileServer(http.Dir("static"))))
+
 	// 在微信内打开的预制登录页，点击按钮后再发起网页授权
 	http.HandleFunc("/wechat/loginU", func(w http.ResponseWriter, r *http.Request) {
 		sid := r.URL.Query().Get("sid")
@@ -178,6 +182,7 @@ func main() {
 			background-size: 16px 16px, 16px 16px; pointer-events:none; opacity:.4}
 		  .card{position:relative; width:94%; max-width:600px; padding:28px; background:#2b2b2b; border:4px solid #000; box-shadow: 0 0 0 4px #3f3f3f, 0 0 0 8px #000; text-align:center}
 		  .title{font-size:24px; letter-spacing:2px; text-shadow:2px 2px #000}
+		  .title-img{display:block; margin:0 auto 10px; max-width:100%; height:auto; image-rendering: pixelated;}
 		  .desc{margin:10px 0 18px; color:#bfbfbf}
 		  .badge{display:block; width:max-content; margin:0 auto 22px; padding:10px 14px; background:#3a3a3a; border:3px solid #000; box-shadow:2px 2px #000; font-size:14px}
 		  .btn{display:block; width:max-content; margin:16px auto 0; padding:16px 24px; font-size:20px; color:#000; background:#6cc24a; border:4px solid #000; box-shadow:0 6px #000, 0 0 0 6px #2e5f23; text-transform:uppercase; letter-spacing:3px; cursor:pointer}
@@ -209,6 +214,7 @@ func main() {
 		</style></head><body>
 		<div class="bg"></div>
 		<div class="card">
+          <img src="/wechat/static/images/title.png" alt="title" class="title-img" />
 		  <div class="npc"></div>
 		  <div class="title">像素授权绑定</div>
 		  <div class="desc">此页面需在微信客户端内打开</div>
