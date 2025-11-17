@@ -1,23 +1,24 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/hex"
-	"encoding/json"
-	"fmt"
-	"log"
-	"net/http"
-	"os"
-	"strings"
-	"sync"
-	"time"
+    "crypto/rand"
+    "encoding/base64"
+    "encoding/hex"
+    "encoding/json"
+    "fmt"
+    "log"
+    "net/http"
+    "os"
+    "strings"
+    "sync"
+    "time"
 
-	"github.com/silenceper/wechat/v2"
-	"github.com/silenceper/wechat/v2/cache"
-	"github.com/silenceper/wechat/v2/officialaccount/basic"
-	offConfig "github.com/silenceper/wechat/v2/officialaccount/config"
-	"github.com/silenceper/wechat/v2/officialaccount/message"
-	_ "github.com/silenceper/wechat/v2/officialaccount/server"
+    "github.com/silenceper/wechat/v2"
+    "github.com/silenceper/wechat/v2/cache"
+    offConfig "github.com/silenceper/wechat/v2/officialaccount/config"
+    "github.com/silenceper/wechat/v2/officialaccount/message"
+    _ "github.com/silenceper/wechat/v2/officialaccount/server"
+    qrcode "github.com/skip2/go-qrcode"
 )
 
 func main() {
@@ -70,30 +71,28 @@ func main() {
 		return ""
 	}
 
-	// 登录二维码接口：返回 sid 与二维码图片地址
-	http.HandleFunc("/wechat/login_qr", func(w http.ResponseWriter, r *http.Request) {
-		sid := r.URL.Query().Get("sid")
-		if sid == "" {
-			sid = newSID()
-		}
-
-		basicSvc := officialAccount.GetBasic()
-		req := basic.NewTmpQrRequest(5*time.Minute, "login:"+sid)
-		ticket, err := basicSvc.GetQRTicket(req)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-			return
-		}
-		qrURL := basic.ShowQRCode(ticket)
-
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"sid":            sid,
-			"qr_url":         qrURL,
-			"expire_seconds": ticket.ExpireSeconds,
-		})
-	})
+    // 登录二维码接口：返回 sid 与二维码图片（data URL），用于在PC页面引导用户在微信内打开 /wechat/loginU
+    http.HandleFunc("/wechat/login_qr", func(w http.ResponseWriter, r *http.Request) {
+        sid := r.URL.Query().Get("sid")
+        if sid == "" {
+            sid = newSID()
+        }
+        scheme := r.Header.Get("X-Forwarded-Proto")
+        if scheme == "" { scheme = "http" }
+        loginURL := scheme + "://" + r.Host + "/wechat/loginU?sid=" + sid
+        png, err := qrcode.Encode(loginURL, qrcode.Medium, 240)
+        if err != nil {
+            w.WriteHeader(http.StatusInternalServerError)
+            _ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+            return
+        }
+        dataURL := "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
+        w.Header().Set("Content-Type", "application/json")
+        _ = json.NewEncoder(w).Encode(map[string]interface{}{
+            "sid":     sid,
+            "qr_data": dataURL,
+        })
+    })
 
 	// 登录状态轮询接口
 	http.HandleFunc("/wechat/login_status", func(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +120,7 @@ func main() {
 	// 简单前端页面
 	http.HandleFunc("/wechat/login", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>微信扫码登录</title></head><body>
+        fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>微信扫码登录</title></head><body>
 			<h3>微信扫码登录</h3>
 			<div id="qr"></div>
 			<div id="status">等待扫码...</div>
@@ -131,70 +130,96 @@ func main() {
 			  const res = await fetch('/wechat/login_qr');
 			  const data = await res.json();
 			  const img = document.createElement('img');
-          img.src = data.qr_url;
-          img.style.width = '240px';
-          document.getElementById('qr').appendChild(img);
-          const sid = data.sid;
-          async function poll(){
-            const r = await fetch('/wechat/login_status?sid='+sid);
-            const s = await r.json();
-            if(s.status === 'scanned'){
-              document.getElementById('status').innerText = '登录成功，OpenID: '+s.openid;
-            }else{
-              setTimeout(poll, 2000);
-            }
-          }
+			  img.src = data.qr_data;
+			  img.style.width = '240px';
+			  document.getElementById('qr').appendChild(img);
+			  const sid = data.sid;
+			  async function poll(){
+			    const r = await fetch('/wechat/login_status?sid='+sid);
+			    const s = await r.json();
+			    if(s.status === 'scanned'){
+			      document.getElementById('status').innerText = '登录成功，OpenID: '+s.openid+(s.unionid ? ('，UnionID: '+s.unionid) : '');
+			    }else{
+			      setTimeout(poll, 2000);
+			    }
+			  }
 			  poll();
 			  if(navigator.userAgent.indexOf('MicroMessenger') !== -1){
 			    document.getElementById('wx-auth').style.display = 'block';
 			  }
+			})();
+			</script>
+			</body></html>`)
+    })
+
+    // 在微信内打开的预制登录页，点击按钮后再发起网页授权
+    http.HandleFunc("/wechat/loginU", func(w http.ResponseWriter, r *http.Request) {
+        sid := r.URL.Query().Get("sid")
+        w.Header().Set("Content-Type", "text/html; charset=utf-8")
+        fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>授权登录</title></head><body>
+        <h3>授权登录</h3>
+        <p>此页面需在微信客户端内打开。</p>
+        <p>会话ID: %s</p>
+        <button id="go">同意授权</button>
+        <script>
+        (function(){
+          document.getElementById('go').onclick = function(){
+            location.href = '/wechat/oauth_go?sid=%s';
+          };
         })();
         </script>
-			</body></html>`)
-	})
+        </body></html>`, sid, sid)
+    })
 
-	http.HandleFunc("/wechat/loginU", func(w http.ResponseWriter, r *http.Request) {
-		scheme := r.Header.Get("X-Forwarded-Proto")
-		if scheme == "" {
-			scheme = "http"
-		}
-		cb := scheme + "://" + r.Host + "/wechat/callbackU"
-		oauth := officialAccount.GetOauth()
-		url, err := oauth.GetRedirectURL(cb, "snsapi_userinfo", "state")
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-			return
-		}
-		http.Redirect(w, r, url, http.StatusFound)
-	})
+    // 发起网页授权跳转（将 sid 通过 state 传递到回调）
+    http.HandleFunc("/wechat/oauth_go", func(w http.ResponseWriter, r *http.Request) {
+        sid := r.URL.Query().Get("sid")
+        scheme := r.Header.Get("X-Forwarded-Proto")
+        if scheme == "" { scheme = "http" }
+        cb := scheme + "://" + r.Host + "/wechat/callbackU"
+        oauth := officialAccount.GetOauth()
+        url, err := oauth.GetRedirectURL(cb, "snsapi_userinfo", sid)
+        if err != nil {
+            w.WriteHeader(http.StatusInternalServerError)
+            _ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+            return
+        }
+        http.Redirect(w, r, url, http.StatusFound)
+    })
 
-	http.HandleFunc("/wechat/callbackU", func(w http.ResponseWriter, r *http.Request) {
-		code := r.URL.Query().Get("code")
-		if code == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": "missing code"})
-			return
-		}
-		oauth := officialAccount.GetOauth()
-		tok, err := oauth.GetUserAccessToken(code)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-			return
-		}
-		info, err := oauth.GetUserInfo(tok.AccessToken, tok.OpenID, "zh_CN")
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-			return
-		}
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"openid":  info.OpenID,
-			"unionid": info.Unionid,
-			"scope":   tok.Scope,
-		})
-	})
+    http.HandleFunc("/wechat/callbackU", func(w http.ResponseWriter, r *http.Request) {
+        code := r.URL.Query().Get("code")
+        sid := r.URL.Query().Get("state")
+        if code == "" {
+            w.WriteHeader(http.StatusBadRequest)
+            _ = json.NewEncoder(w).Encode(map[string]string{"error": "missing code"})
+            return
+        }
+        oauth := officialAccount.GetOauth()
+        tok, err := oauth.GetUserAccessToken(code)
+        if err != nil {
+            w.WriteHeader(http.StatusBadRequest)
+            _ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+            return
+        }
+        info, err := oauth.GetUserInfo(tok.AccessToken, tok.OpenID, "zh_CN")
+        if err != nil {
+            w.WriteHeader(http.StatusBadRequest)
+            _ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+            return
+        }
+        if sid != "" {
+            loginMu.Lock()
+            loginSessions[sid] = loginState{OpenID: info.OpenID, UnionID: info.Unionid, ScannedAt: time.Now()}
+            loginMu.Unlock()
+        }
+        w.Header().Set("Content-Type", "text/html; charset=utf-8")
+        fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>授权完成</title></head><body>
+        <p>授权完成</p>
+        <p>OpenID: %s</p>
+        <p>UnionID: %s</p>
+        </body></html>`, info.OpenID, info.Unionid)
+    })
 
 	http.HandleFunc("/wechat/callback", func(w http.ResponseWriter, r *http.Request) {
 		srv := officialAccount.GetServer(r, w)
