@@ -161,19 +161,43 @@ func main() {
 	http.HandleFunc("/wechat/loginU", func(w http.ResponseWriter, r *http.Request) {
 		sid := r.URL.Query().Get("sid")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>授权登录</title></head><body>
-        <h3>授权登录</h3>
-        <p>此页面需在微信客户端内打开。</p>
-        <p>会话ID: %s</p>
-        <button id="go">同意授权</button>
-        <script>
-        (function(){
-          document.getElementById('go').onclick = function(){
-            location.href = '/wechat/oauth_go?sid=%s';
-          };
-        })();
-        </script>
-        </body></html>`, sid, sid)
+		fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>授权登录</title>
+		<style>
+		  html,body{height:100%%}
+		  body{margin:0; background:#1a1a1a; color:#fff; font-family: monospace; display:flex; align-items:center; justify-content:center; image-rendering: pixelated;}
+		  .bg{position:fixed; inset:0; background:
+		    linear-gradient(#222 1px, transparent 1px),
+		    linear-gradient(90deg, #222 1px, transparent 1px);
+		    background-size: 16px 16px, 16px 16px; pointer-events:none; opacity:.4}
+		  .card{position:relative; width:92%%; max-width:420px; padding:24px; background:#2b2b2b; border:4px solid #000; box-shadow: 0 0 0 6px #6b6b6b, 0 0 0 10px #000; text-align:center}
+		  .title{font-size:20px; letter-spacing:2px; text-shadow:2px 2px #000}
+		  .desc{margin:10px 0 18px; color:#bfbfbf}
+		  .badge{display:inline-block; margin-bottom:14px; padding:6px 10px; background:#3a3a3a; border:3px solid #000; box-shadow:2px 2px #000; font-size:12px}
+		  .btn{display:inline-block; margin-top:10px; padding:14px 20px; font-size:18px; color:#000; background:#ffd84e; border:4px solid #000; box-shadow:0 6px #000, 0 0 0 6px #ffb800; text-transform:uppercase; letter-spacing:2px; cursor:pointer}
+		  .btn:hover{filter:brightness(1.05)}
+		  .btn:active{transform:translateY(3px); box-shadow:0 3px #000, 0 0 0 6px #ffb800}
+		  .npc{width:72px; height:72px; margin:0 auto 10px; background:
+		    radial-gradient(circle at 50%% 35%%, #ffec9a 0 18%%, transparent 19%%),
+		    radial-gradient(circle at 35%% 50%%, #000 0 6%%, transparent 7%%),
+		    radial-gradient(circle at 65%% 50%%, #000 0 6%%, transparent 7%%),
+		    linear-gradient(#ff9f43 0 0) center/60%% 20%% no-repeat,
+		    linear-gradient(#ff9f43 0 0) center 80%%/100%% 22%% no-repeat;
+		    image-rendering: pixelated; border:4px solid #000; box-shadow:2px 2px #000; background-color:#ffcf6b}
+		</style></head><body>
+		<div class="bg"></div>
+		<div class="card">
+		  <div class="npc"></div>
+		  <div class="title">像素授权登录</div>
+		  <div class="desc">此页面需在微信客户端内打开</div>
+		  <div class="badge">会话ID: %s</div>
+		  <button id="go" class="btn">同意授权</button>
+		</div>
+		<script>
+		  document.getElementById('go').onclick = function(){
+		    location.href = '/wechat/oauth_go?sid=%s';
+		  };
+		</script>
+		</body></html>`, sid, sid)
 	})
 
 	// 发起网页授权跳转（将 sid 通过 state 传递到回调）
