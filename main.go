@@ -176,9 +176,9 @@ func main() {
         sid := r.URL.Query().Get("sid")
         scheme := r.Header.Get("X-Forwarded-Proto")
         if scheme == "" { scheme = "http" }
-        cb := scheme + "://" + r.Host + "/wechat/callbackU"
+    cb := scheme + "://" + r.Host + "/wechat/callback"
         oauth := officialAccount.GetOauth()
-        url, err := oauth.GetRedirectURL(cb, "snsapi_userinfo", sid)
+	url, err := oauth.GetRedirectURL(cb, "snsapi_userinfo", sid)
         if err != nil {
             w.WriteHeader(http.StatusInternalServerError)
             _ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -187,14 +187,11 @@ func main() {
         http.Redirect(w, r, url, http.StatusFound)
     })
 
-    http.HandleFunc("/wechat/callbackU", func(w http.ResponseWriter, r *http.Request) {
-        code := r.URL.Query().Get("code")
+// 合并 OAuth 回调与消息回调为同一路径
+http.HandleFunc("/wechat/callback", func(w http.ResponseWriter, r *http.Request) {
+    code := r.URL.Query().Get("code")
+    if code != "" {
         sid := r.URL.Query().Get("state")
-        if code == "" {
-            w.WriteHeader(http.StatusBadRequest)
-            _ = json.NewEncoder(w).Encode(map[string]string{"error": "missing code"})
-            return
-        }
         oauth := officialAccount.GetOauth()
         tok, err := oauth.GetUserAccessToken(code)
         if err != nil {
@@ -219,7 +216,48 @@ func main() {
         <p>OpenID: %s</p>
         <p>UnionID: %s</p>
         </body></html>`, info.OpenID, info.Unionid)
+        return
+    }
+
+    srv := officialAccount.GetServer(r, w)
+    srv.SetMessageHandler(func(msg *message.MixMessage) *message.Reply {
+        switch msg.MsgType {
+        case message.MsgTypeText:
+            text := message.NewText("你发送的是: " + msg.Content)
+            return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
+        case message.MsgTypeEvent:
+            if msg.Event == "subscribe" || msg.Event == "SCAN" {
+                sid := extractSID(msg.EventKey)
+                if sid != "" {
+                    openid := string(msg.FromUserName)
+                    var union string
+                    if openid != "" {
+                        userSvc := officialAccount.GetUser()
+                        if info, err := userSvc.GetUserInfo(openid); err == nil {
+                            union = info.UnionID
+                        }
+                    }
+                    loginMu.Lock()
+                    loginSessions[sid] = loginState{OpenID: openid, UnionID: union, ScannedAt: time.Now()}
+                    loginMu.Unlock()
+                }
+                if msg.Event == "subscribe" {
+                    text := message.NewText("欢迎关注！")
+                    return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
+                }
+            }
+        }
+        return nil
     })
+
+    err := srv.Serve()
+    if err != nil {
+        log.Printf("Serve error: %v", err)
+        fmt.Fprintf(w, "error")
+        return
+    }
+    srv.Send()
+})
 
 	http.HandleFunc("/wechat/callback", func(w http.ResponseWriter, r *http.Request) {
 		srv := officialAccount.GetServer(r, w)
