@@ -177,8 +177,8 @@ func main() {
           .btn:hover{filter:brightness(1.05)}
           .btn:active{transform:translateY(4px); box-shadow:0 4px #000, 0 0 0 6px #2e5f23}
           .btn[disabled]{opacity:.7; filter:saturate(.8) brightness(.95); cursor:not-allowed; box-shadow:0 6px #000, 0 0 0 8px #2e5f23}
-          @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-          .btn.locked{animation:bob 1.2s ease-in-out infinite}
+          @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+          .btn.locked{animation:bob 1.2s ease-in-out infinite; will-change: transform}
 		  .npc{width:96px; height:96px; margin:0 auto 12px; background:
 		    radial-gradient(circle at 50%% 35%%, #ffec9a 0 18%%, transparent 19%%),
 		    radial-gradient(circle at 35%% 50%%, #000 0 6%%, transparent 7%%),
@@ -267,7 +267,7 @@ func main() {
 			}
 			if sid != "" {
 				loginMu.Lock()
-                loginSessions[sid] = loginState{OpenID: info.OpenID, UnionID: info.UnionID, ScannedAt: time.Now()}
+                loginSessions[sid] = loginState{OpenID: info.OpenID, UnionID: info.Unionid, ScannedAt: time.Now()}
 				loginMu.Unlock()
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -275,7 +275,7 @@ func main() {
         <p>授权完成</p>
         <p>OpenID: %s</p>
         <p>UnionID: %s</p>
-        </body></html>`, info.OpenID, info.UnionID)
+        </body></html>`, info.OpenID, info.Unionid)
 			return
 		}
 
