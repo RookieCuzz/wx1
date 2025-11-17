@@ -1,24 +1,24 @@
 package main
 
 import (
-    "crypto/rand"
-    "encoding/base64"
-    "encoding/hex"
-    "encoding/json"
-    "fmt"
-    "log"
-    "net/http"
-    "os"
-    "strings"
-    "sync"
-    "time"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"sync"
+	"time"
 
-    "github.com/silenceper/wechat/v2"
-    "github.com/silenceper/wechat/v2/cache"
-    offConfig "github.com/silenceper/wechat/v2/officialaccount/config"
-    "github.com/silenceper/wechat/v2/officialaccount/message"
-    _ "github.com/silenceper/wechat/v2/officialaccount/server"
-    qrcode "github.com/skip2/go-qrcode"
+	"github.com/silenceper/wechat/v2"
+	"github.com/silenceper/wechat/v2/cache"
+	offConfig "github.com/silenceper/wechat/v2/officialaccount/config"
+	"github.com/silenceper/wechat/v2/officialaccount/message"
+	_ "github.com/silenceper/wechat/v2/officialaccount/server"
+	qrcode "github.com/skip2/go-qrcode"
 )
 
 func main() {
@@ -38,7 +38,7 @@ func main() {
 		EncodingAESKey: aesKey,
 		Cache:          memory,
 	}
-
+	//test
 	officialAccount := wc.GetOfficialAccount(cfg)
 
 	// 简单的登录会话状态存储
@@ -71,28 +71,30 @@ func main() {
 		return ""
 	}
 
-    // 登录二维码接口：返回 sid 与二维码图片（data URL），用于在PC页面引导用户在微信内打开 /wechat/loginU
-    http.HandleFunc("/wechat/login_qr", func(w http.ResponseWriter, r *http.Request) {
-        sid := r.URL.Query().Get("sid")
-        if sid == "" {
-            sid = newSID()
-        }
-        scheme := r.Header.Get("X-Forwarded-Proto")
-        if scheme == "" { scheme = "http" }
-        loginURL := scheme + "://" + r.Host + "/wechat/loginU?sid=" + sid
-        png, err := qrcode.Encode(loginURL, qrcode.Medium, 240)
-        if err != nil {
-            w.WriteHeader(http.StatusInternalServerError)
-            _ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-            return
-        }
-        dataURL := "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
-        w.Header().Set("Content-Type", "application/json")
-        _ = json.NewEncoder(w).Encode(map[string]interface{}{
-            "sid":     sid,
-            "qr_data": dataURL,
-        })
-    })
+	// 登录二维码接口：返回 sid 与二维码图片（data URL），用于在PC页面引导用户在微信内打开 /wechat/loginU
+	http.HandleFunc("/wechat/login_qr", func(w http.ResponseWriter, r *http.Request) {
+		sid := r.URL.Query().Get("sid")
+		if sid == "" {
+			sid = newSID()
+		}
+		scheme := r.Header.Get("X-Forwarded-Proto")
+		if scheme == "" {
+			scheme = "http"
+		}
+		loginURL := scheme + "://" + r.Host + "/wechat/loginU?sid=" + sid
+		png, err := qrcode.Encode(loginURL, qrcode.Medium, 240)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		dataURL := "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"sid":     sid,
+			"qr_data": dataURL,
+		})
+	})
 
 	// 登录状态轮询接口
 	http.HandleFunc("/wechat/login_status", func(w http.ResponseWriter, r *http.Request) {
@@ -120,7 +122,7 @@ func main() {
 	// 简单前端页面
 	http.HandleFunc("/wechat/login", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-        fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>微信扫码登录</title></head><body>
+		fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>微信扫码登录</title></head><body>
 			<h3>微信扫码登录</h3>
 			<div id="qr"></div>
 			<div id="status">等待扫码...</div>
@@ -150,13 +152,13 @@ func main() {
 			})();
 			</script>
 			</body></html>`)
-    })
+	})
 
-    // 在微信内打开的预制登录页，点击按钮后再发起网页授权
-    http.HandleFunc("/wechat/loginU", func(w http.ResponseWriter, r *http.Request) {
-        sid := r.URL.Query().Get("sid")
-        w.Header().Set("Content-Type", "text/html; charset=utf-8")
-        fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>授权登录</title></head><body>
+	// 在微信内打开的预制登录页，点击按钮后再发起网页授权
+	http.HandleFunc("/wechat/loginU", func(w http.ResponseWriter, r *http.Request) {
+		sid := r.URL.Query().Get("sid")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>授权登录</title></head><body>
         <h3>授权登录</h3>
         <p>此页面需在微信客户端内打开。</p>
         <p>会话ID: %s</p>
@@ -169,95 +171,97 @@ func main() {
         })();
         </script>
         </body></html>`, sid, sid)
-    })
+	})
 
-    // 发起网页授权跳转（将 sid 通过 state 传递到回调）
-    http.HandleFunc("/wechat/oauth_go", func(w http.ResponseWriter, r *http.Request) {
-        sid := r.URL.Query().Get("sid")
-        scheme := r.Header.Get("X-Forwarded-Proto")
-        if scheme == "" { scheme = "http" }
-    cb := scheme + "://" + r.Host + "/wechat/callback"
-        oauth := officialAccount.GetOauth()
-	url, err := oauth.GetRedirectURL(cb, "snsapi_userinfo", sid)
-        if err != nil {
-            w.WriteHeader(http.StatusInternalServerError)
-            _ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-            return
-        }
-        http.Redirect(w, r, url, http.StatusFound)
-    })
+	// 发起网页授权跳转（将 sid 通过 state 传递到回调）
+	http.HandleFunc("/wechat/oauth_go", func(w http.ResponseWriter, r *http.Request) {
+		sid := r.URL.Query().Get("sid")
+		scheme := r.Header.Get("X-Forwarded-Proto")
+		if scheme == "" {
+			scheme = "http"
+		}
+		cb := scheme + "://" + r.Host + "/wechat/callback"
+		oauth := officialAccount.GetOauth()
+		url, err := oauth.GetRedirectURL(cb, "snsapi_userinfo", sid)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		http.Redirect(w, r, url, http.StatusFound)
+	})
 
-// 合并 OAuth 回调与消息回调为同一路径
-http.HandleFunc("/wechat/callback", func(w http.ResponseWriter, r *http.Request) {
-    code := r.URL.Query().Get("code")
-    if code != "" {
-        sid := r.URL.Query().Get("state")
-        oauth := officialAccount.GetOauth()
-        tok, err := oauth.GetUserAccessToken(code)
-        if err != nil {
-            w.WriteHeader(http.StatusBadRequest)
-            _ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-            return
-        }
-        info, err := oauth.GetUserInfo(tok.AccessToken, tok.OpenID, "zh_CN")
-        if err != nil {
-            w.WriteHeader(http.StatusBadRequest)
-            _ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-            return
-        }
-        if sid != "" {
-            loginMu.Lock()
-            loginSessions[sid] = loginState{OpenID: info.OpenID, UnionID: info.Unionid, ScannedAt: time.Now()}
-            loginMu.Unlock()
-        }
-        w.Header().Set("Content-Type", "text/html; charset=utf-8")
-        fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>授权完成</title></head><body>
+	// 合并 OAuth 回调与消息回调为同一路径
+	http.HandleFunc("/wechat/callback", func(w http.ResponseWriter, r *http.Request) {
+		code := r.URL.Query().Get("code")
+		if code != "" {
+			sid := r.URL.Query().Get("state")
+			oauth := officialAccount.GetOauth()
+			tok, err := oauth.GetUserAccessToken(code)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+				return
+			}
+			info, err := oauth.GetUserInfo(tok.AccessToken, tok.OpenID, "zh_CN")
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+				return
+			}
+			if sid != "" {
+				loginMu.Lock()
+				loginSessions[sid] = loginState{OpenID: info.OpenID, UnionID: info.Unionid, ScannedAt: time.Now()}
+				loginMu.Unlock()
+			}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>授权完成</title></head><body>
         <p>授权完成</p>
         <p>OpenID: %s</p>
         <p>UnionID: %s</p>
         </body></html>`, info.OpenID, info.Unionid)
-        return
-    }
+			return
+		}
 
-    srv := officialAccount.GetServer(r, w)
-    srv.SetMessageHandler(func(msg *message.MixMessage) *message.Reply {
-        switch msg.MsgType {
-        case message.MsgTypeText:
-            text := message.NewText("你发送的是: " + msg.Content)
-            return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
-        case message.MsgTypeEvent:
-            if msg.Event == "subscribe" || msg.Event == "SCAN" {
-                sid := extractSID(msg.EventKey)
-                if sid != "" {
-                    openid := string(msg.FromUserName)
-                    var union string
-                    if openid != "" {
-                        userSvc := officialAccount.GetUser()
-                        if info, err := userSvc.GetUserInfo(openid); err == nil {
-                            union = info.UnionID
-                        }
-                    }
-                    loginMu.Lock()
-                    loginSessions[sid] = loginState{OpenID: openid, UnionID: union, ScannedAt: time.Now()}
-                    loginMu.Unlock()
-                }
-                if msg.Event == "subscribe" {
-                    text := message.NewText("欢迎关注！")
-                    return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
-                }
-            }
-        }
-        return nil
-    })
+		srv := officialAccount.GetServer(r, w)
+		srv.SetMessageHandler(func(msg *message.MixMessage) *message.Reply {
+			switch msg.MsgType {
+			case message.MsgTypeText:
+				text := message.NewText("你发送的是: " + msg.Content)
+				return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
+			case message.MsgTypeEvent:
+				if msg.Event == "subscribe" || msg.Event == "SCAN" {
+					sid := extractSID(msg.EventKey)
+					if sid != "" {
+						openid := string(msg.FromUserName)
+						var union string
+						if openid != "" {
+							userSvc := officialAccount.GetUser()
+							if info, err := userSvc.GetUserInfo(openid); err == nil {
+								union = info.UnionID
+							}
+						}
+						loginMu.Lock()
+						loginSessions[sid] = loginState{OpenID: openid, UnionID: union, ScannedAt: time.Now()}
+						loginMu.Unlock()
+					}
+					if msg.Event == "subscribe" {
+						text := message.NewText("欢迎关注！")
+						return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
+					}
+				}
+			}
+			return nil
+		})
 
-    err := srv.Serve()
-    if err != nil {
-        log.Printf("Serve error: %v", err)
-        fmt.Fprintf(w, "error")
-        return
-    }
-    srv.Send()
-})
+		err := srv.Serve()
+		if err != nil {
+			log.Printf("Serve error: %v", err)
+			fmt.Fprintf(w, "error")
+			return
+		}
+		srv.Send()
+	})
 
 	http.HandleFunc("/wechat/callback", func(w http.ResponseWriter, r *http.Request) {
 		srv := officialAccount.GetServer(r, w)
