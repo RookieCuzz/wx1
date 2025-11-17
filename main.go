@@ -43,6 +43,7 @@ func main() {
 	// 简单的登录会话状态存储
 	type loginState struct {
 		OpenID    string    `json:"openid"`
+		UnionID   string    `json:"unionid,omitempty"`
 		ScannedAt time.Time `json:"scanned_at"`
 	}
 	var (
@@ -112,6 +113,7 @@ func main() {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":  "scanned",
 			"openid":  st.OpenID,
+			"unionid": st.UnionID,
 			"scanned": st.ScannedAt.Format(time.RFC3339),
 		})
 	})
@@ -123,7 +125,7 @@ func main() {
 			<h3>微信扫码登录</h3>
 			<div id="qr"></div>
 			<div id="status">等待扫码...</div>
-			<p><a href="/wechat/loginU">或点击进行微信网页授权获取UnionID</a></p>
+			<p id="wx-auth" style="display:none"><a href="/wechat/loginU">或点击在微信客户端内进行网页授权获取UnionID</a></p>
 			<script>
 			(async function(){
 			  const res = await fetch('/wechat/login_qr');
@@ -142,7 +144,10 @@ func main() {
               setTimeout(poll, 2000);
             }
           }
-          poll();
+			  poll();
+			  if(navigator.userAgent.indexOf('MicroMessenger') !== -1){
+			    document.getElementById('wx-auth').style.display = 'block';
+			  }
         })();
         </script>
 			</body></html>`)
@@ -206,8 +211,16 @@ func main() {
 				if msg.Event == "subscribe" || msg.Event == "SCAN" {
 					sid := extractSID(msg.EventKey)
 					if sid != "" {
+						openid := string(msg.FromUserName)
+						var union string
+						if openid != "" {
+							userSvc := officialAccount.GetUser()
+							if info, err := userSvc.GetUserInfo(openid); err == nil {
+								union = info.UnionID
+							}
+						}
 						loginMu.Lock()
-						loginSessions[sid] = loginState{OpenID: string(msg.FromUserName), ScannedAt: time.Now()}
+						loginSessions[sid] = loginState{OpenID: openid, UnionID: union, ScannedAt: time.Now()}
 						loginMu.Unlock()
 					}
 					if msg.Event == "subscribe" {
