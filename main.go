@@ -169,14 +169,14 @@ func main() {
 		    linear-gradient(#222 1px, transparent 1px),
 		    linear-gradient(90deg, #222 1px, transparent 1px);
 		    background-size: 16px 16px, 16px 16px; pointer-events:none; opacity:.4}
-		  .card{position:relative; width:92%%; max-width:420px; padding:24px; background:#2b2b2b; border:4px solid #000; box-shadow: 0 0 0 6px #6b6b6b, 0 0 0 10px #000; text-align:center}
-		  .title{font-size:20px; letter-spacing:2px; text-shadow:2px 2px #000}
+		  .card{position:relative; width:94%%; max-width:560px; padding:28px; background:#2b2b2b; border:4px solid #000; box-shadow: 0 0 0 6px #6b6b6b, 0 0 0 10px #000; text-align:center}
+		  .title{font-size:24px; letter-spacing:2px; text-shadow:2px 2px #000}
 		  .desc{margin:10px 0 18px; color:#bfbfbf}
-		  .badge{display:inline-block; margin-bottom:14px; padding:6px 10px; background:#3a3a3a; border:3px solid #000; box-shadow:2px 2px #000; font-size:12px}
-		  .btn{display:inline-block; margin-top:10px; padding:14px 20px; font-size:18px; color:#000; background:#ffd84e; border:4px solid #000; box-shadow:0 6px #000, 0 0 0 6px #ffb800; text-transform:uppercase; letter-spacing:2px; cursor:pointer}
+		  .badge{display:inline-block; margin-bottom:18px; padding:8px 12px; background:#3a3a3a; border:3px solid #000; box-shadow:2px 2px #000; font-size:13px}
+		  .btn{display:inline-block; margin-top:12px; padding:16px 24px; font-size:20px; color:#000; background:#ffd84e; border:4px solid #000; box-shadow:0 8px #000, 0 0 0 6px #ffb800; text-transform:uppercase; letter-spacing:2px; cursor:pointer}
 		  .btn:hover{filter:brightness(1.05)}
-		  .btn:active{transform:translateY(3px); box-shadow:0 3px #000, 0 0 0 6px #ffb800}
-		  .npc{width:72px; height:72px; margin:0 auto 10px; background:
+		  .btn:active{transform:translateY(4px); box-shadow:0 4px #000, 0 0 0 6px #ffb800}
+		  .npc{width:96px; height:96px; margin:0 auto 12px; background:
 		    radial-gradient(circle at 50%% 35%%, #ffec9a 0 18%%, transparent 19%%),
 		    radial-gradient(circle at 35%% 50%%, #000 0 6%%, transparent 7%%),
 		    radial-gradient(circle at 65%% 50%%, #000 0 6%%, transparent 7%%),
