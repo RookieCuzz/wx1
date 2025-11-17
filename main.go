@@ -81,8 +81,10 @@ func main() {
 		if scheme == "" {
 			scheme = "http"
 		}
-		loginURL := scheme + "://" + r.Host + "/wechat/loginU?sid=" + sid
-		log.Printf("login_qr scheme=%s host=%s url=%s", scheme, r.Host, loginURL)
+		h := r.Header.Get("X-Forwarded-Host")
+		if h == "" { h = r.Host }
+		loginURL := scheme + "://" + h + "/wechat/loginU?sid=" + sid
+		log.Printf("login_qr scheme=%s host=%s url=%s", scheme, h, loginURL)
 		png, err := qrcode.Encode(loginURL, qrcode.Medium, 240)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -178,13 +180,13 @@ func main() {
 	http.HandleFunc("/wechat/oauth_go", func(w http.ResponseWriter, r *http.Request) {
 		sid := r.URL.Query().Get("sid")
 		scheme := r.Header.Get("X-Forwarded-Proto")
-		if scheme == "" {
-			scheme = "http"
-		}
-		cb := scheme + "://" + r.Host + "/wechat/callback"
+		if scheme == "" { scheme = "http" }
+		h := r.Header.Get("X-Forwarded-Host")
+		if h == "" { h = r.Host }
+		cb := scheme + "://" + h + "/wechat/callback"
 		oauth := officialAccount.GetOauth()
 		url, err := oauth.GetRedirectURL(cb, "snsapi_userinfo", sid)
-		log.Printf("oauth_go scheme=%s host=%s cb=%s sid=%s url=%s", scheme, r.Host, cb, sid, url)
+		log.Printf("oauth_go scheme=%s host=%s cb=%s sid=%s url=%s", scheme, h, cb, sid, url)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
@@ -267,9 +269,9 @@ func main() {
 
     
 
-	addr := ":28083"
-	fmt.Println("Server listening on", addr)
-	if err := http.ListenAndServe(addr, nil); err != nil {
-		log.Fatalf("listen and serve error: %v", err)
-	}
+    addr := ":28083"
+    fmt.Println("Server listening on", addr)
+    if err := http.ListenAndServe(addr, nil); err != nil {
+        log.Fatalf("listen and serve error: %v", err)
+    }
 }
