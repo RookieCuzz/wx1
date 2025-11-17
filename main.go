@@ -161,21 +161,21 @@ func main() {
 	http.HandleFunc("/wechat/loginU", func(w http.ResponseWriter, r *http.Request) {
 		sid := r.URL.Query().Get("sid")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><title>授权登录</title>
+		fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>授权登录</title>
 		<style>
 		  html,body{height:100%%}
-		  body{margin:0; background:#1a1a1a; color:#fff; font-family: monospace; display:flex; align-items:center; justify-content:center; image-rendering: pixelated;}
+		  body{margin:0; background:#1a1a1a; color:#fff; font-family: monospace; display:flex; align-items:center; justify-content:center; image-rendering: pixelated; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);}
 		  .bg{position:fixed; inset:0; background:
 		    linear-gradient(#222 1px, transparent 1px),
 		    linear-gradient(90deg, #222 1px, transparent 1px);
 		    background-size: 16px 16px, 16px 16px; pointer-events:none; opacity:.4}
-		  .card{position:relative; width:94%%; max-width:560px; padding:28px; background:#2b2b2b; border:4px solid #000; box-shadow: 0 0 0 6px #6b6b6b, 0 0 0 10px #000; text-align:center}
+		  .card{position:relative; width:94%%; max-width:600px; padding:28px; background:#2b2b2b; border:4px solid #000; box-shadow: 0 0 0 6px #6b6b6b, 0 0 0 10px #000; text-align:center}
 		  .title{font-size:24px; letter-spacing:2px; text-shadow:2px 2px #000}
 		  .desc{margin:10px 0 18px; color:#bfbfbf}
-		  .badge{display:inline-block; margin-bottom:18px; padding:8px 12px; background:#3a3a3a; border:3px solid #000; box-shadow:2px 2px #000; font-size:13px}
-		  .btn{display:inline-block; margin-top:12px; padding:16px 24px; font-size:20px; color:#000; background:#ffd84e; border:4px solid #000; box-shadow:0 8px #000, 0 0 0 6px #ffb800; text-transform:uppercase; letter-spacing:2px; cursor:pointer}
+		  .badge{display:block; width:max-content; margin:0 auto 22px; padding:10px 14px; background:#3a3a3a; border:3px solid #000; box-shadow:2px 2px #000; font-size:14px}
+		  .btn{display:block; width:max-content; margin:16px auto 0; padding:32px 48px; font-size:40px; color:#000; background:#ffd84e; border:4px solid #000; box-shadow:0 12px #000, 0 0 0 8px #ffb800; text-transform:uppercase; letter-spacing:3px; cursor:pointer}
 		  .btn:hover{filter:brightness(1.05)}
-		  .btn:active{transform:translateY(4px); box-shadow:0 4px #000, 0 0 0 6px #ffb800}
+		  .btn:active{transform:translateY(6px); box-shadow:0 6px #000, 0 0 0 8px #ffb800}
 		  .npc{width:96px; height:96px; margin:0 auto 12px; background:
 		    radial-gradient(circle at 50%% 35%%, #ffec9a 0 18%%, transparent 19%%),
 		    radial-gradient(circle at 35%% 50%%, #000 0 6%%, transparent 7%%),
@@ -183,6 +183,19 @@ func main() {
 		    linear-gradient(#ff9f43 0 0) center/60%% 20%% no-repeat,
 		    linear-gradient(#ff9f43 0 0) center 80%%/100%% 22%% no-repeat;
 		    image-rendering: pixelated; border:4px solid #000; box-shadow:2px 2px #000; background-color:#ffcf6b}
+		  @media (max-width: 480px){
+		    .card{width:94%%; max-width:480px; padding:24px}
+		    .title{font-size:22px}
+		    .npc{width:88px; height:88px}
+		    .badge{font-size:13px}
+		    .btn{width:100%%; font-size:34px; padding:28px 20px; box-shadow:0 10px #000, 0 0 0 8px #ffb800}
+		  }
+		  @media (max-width: 360px){
+		    .card{width:96%%; max-width:360px; padding:20px}
+		    .title{font-size:20px}
+		    .npc{width:80px; height:80px}
+		    .btn{width:100%%; font-size:30px; padding:24px 16px}
+		  }
 		</style></head><body>
 		<div class="bg"></div>
 		<div class="card">
