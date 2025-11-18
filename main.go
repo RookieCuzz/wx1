@@ -71,7 +71,64 @@ func main() {
 		return ""
 	}
 
-	// 登录二维码接口：返回 sid 与二维码图片（data URL），用于在PC页面引导用户在微信内打开 /wechat/loginU
+	// 玩家登录接口:根据玩家名称和服务器名称生成SID,并返回二维码01矩阵
+	http.HandleFunc("/wechat/player_login", func(w http.ResponseWriter, r *http.Request) {
+		playerName := r.URL.Query().Get("player_name")
+		serverName := r.URL.Query().Get("server_name")
+			
+		if playerName == "" || serverName == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "缺少参数: player_name 和 server_name 必须提供"})
+			return
+		}
+			
+		// 根据玩家名称和服务器名称拼接SID
+		sid := fmt.Sprintf("%s_%s_%s", serverName, playerName, newSID()[:8])
+			
+		// 生成微信授权页URL
+		scheme := r.Header.Get("X-Forwarded-Proto")
+		if scheme == "" {
+			scheme = "http"
+		}
+		h := r.Header.Get("X-Forwarded-Host")
+		if h == "" {
+			h = r.Host
+		}
+		loginURL := scheme + "://" + h + "/wechat/loginU?sid=" + sid
+		log.Printf("player_login player=%s server=%s sid=%s url=%s", playerName, serverName, sid, loginURL)
+			
+		// 生成二维码并转换为01矩阵
+		qr, err := qrcode.New(loginURL, qrcode.Medium)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+			
+		// 获取二维码位图
+		bitmap := qr.Bitmap()
+			
+		// 转换为01矩阵
+		matrix := make([][]int, len(bitmap))
+		for i := range bitmap {
+			matrix[i] = make([]int, len(bitmap[i]))
+			for j := range bitmap[i] {
+				if bitmap[i][j] {
+					matrix[i][j] = 1
+				} else {
+					matrix[i][j] = 0
+				}
+			}
+		}
+			
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"sid":    sid,
+			"matrix": matrix,
+		})
+	})
+	
+	// 登录二维码接口:返回 sid 与二维码图片(data URL),用于在PC页面引导用户在微信内打开 /wechat/loginU
 	http.HandleFunc("/wechat/login_qr", func(w http.ResponseWriter, r *http.Request) {
 		sid := r.URL.Query().Get("sid")
 		if sid == "" {
